@@ -1,55 +1,29 @@
 # Makefile for Radeon GPU Test
 
-# Compiler
-CC = gcc
+KERNEL_SOURCE ?= /lib/modules/$(shell uname -r)/build
 
-# Kernel module name
-KMOD = radeon_gpu
+# Kernel module object definitions
+MOD_NAME = radeon_gpu_test_driver
+OBJ_FILES = $(MOD_NAME).o
 
-# User space application name
-APP = test_radeon
+# Targets for compiling driver and app
+all: driver app
 
-# Sources
-KMOD_SRC = radeon_gpu.c
-APP_SRC = test_radeon.c
+# Compile kernel module
+driver: $(OBJ_FILES)
+	$(CC) -o $(MOD_NAME).ko $(OBJ_FILES)
 
-# Objects
-KMOD_OBJ = $(KMOD_SRC:.c=.o)
-APP_OBJ = $(APP_SRC:.c=.o)
+# Compile application
+app: radeon_gpu_test_app.c
+	$(CC) -o radeon_gpu_test_app radeon_gpu_test_app.c
 
-# Default build target
-all: $(KMOD) $(APP)
-
-# Build kernel module
-$(KMOD): $(KMOD_OBJ)
-\t$(CC) -shared -o $@ $^
-
-# Build user-space application
-$(APP): $(APP_OBJ)
-\t$(CC) -o $@ $^
-
-# Install kernel module
-install: $(KMOD)
-\t@echo Installing kernel module...
-\t/sbin/insmod $(KMOD)
-
-# Load kernel module
+# Load and unload module
 load:
-\t@echo Loading kernel module...
-\t/sbin/modprobe $(KMOD)
+	/sbin/insmod $(MOD_NAME).ko
 
-# Unload kernel module
 unload:
-\t@echo Unloading kernel module...
-\t/sbin/rmmod $(KMOD)
+	/sbin/rmmod $(MOD_NAME)
 
-# Run tests
-run_tests:
-\t@echo Running tests...
-\t./$(APP)
-
-# Clean up
+# Clean targets
 clean:
-\trm -f $(KMOD) $(APP) $(KMOD_OBJ) $(APP_OBJ)
-
-.PHONY: all install load unload run_tests clean
+	rm -f $(MOD_NAME).ko radeon_gpu_test_app $(OBJ_FILES)
